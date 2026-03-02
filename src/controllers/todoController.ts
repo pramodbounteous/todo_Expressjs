@@ -1,12 +1,16 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import { Todo } from "../models/todoModel";
 import { createTodoSchema, updateTodoSchema } from "../validations/todoValidation";
+import { AuthRequest } from "../middleware/authMiddleware";
 
-export const createTodo = async (req: Request, res: Response): Promise<void> => {
+export const createTodo = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const validatedData = createTodoSchema.parse(req.body);
 
-    const newTodo = await Todo.create(validatedData);
+    const newTodo = await Todo.create({
+      ...validatedData,
+      user: req.user!.id,
+    });
 
     res.status(201).json({
       message: "Todo created successfully",
@@ -19,9 +23,9 @@ export const createTodo = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-export const getTodos = async (_req: Request, res: Response): Promise<void> => {
+export const getTodos = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const todos = await Todo.find().sort({ createdAt: -1 });
+    const todos = await Todo.find({ user: req.user!.id }).sort({ createdAt: -1 });
 
     res.status(200).json({
       count: todos.length,
@@ -34,9 +38,12 @@ export const getTodos = async (_req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const getTodoById = async (req: Request, res: Response): Promise<void> => {
+export const getTodoById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const todo = await Todo.findById(req.params.id);
+    const todo = await Todo.findOne({
+      _id: req.params.id,
+      user: req.user!.id,
+    });
 
     if (!todo) {
       res.status(404).json({ message: "Todo not found" });
@@ -51,12 +58,15 @@ export const getTodoById = async (req: Request, res: Response): Promise<void> =>
   }
 };
 
-export const updateTodo = async (req: Request, res: Response): Promise<void> => {
+export const updateTodo = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const validatedData = updateTodoSchema.parse(req.body);
 
-    const updatedTodo = await Todo.findByIdAndUpdate(
-      req.params.id,
+    const updatedTodo = await Todo.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        user: req.user!.id,
+      },
       validatedData,
       { new: true, runValidators: true }
     );
@@ -77,9 +87,12 @@ export const updateTodo = async (req: Request, res: Response): Promise<void> => 
   }
 };
 
-export const deleteTodo = async (req: Request, res: Response): Promise<void> => {
+export const deleteTodo = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const deletedTodo = await Todo.findByIdAndDelete(req.params.id);
+    const deletedTodo = await Todo.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user!.id,
+    });
 
     if (!deletedTodo) {
       res.status(404).json({ message: "Todo not found" });

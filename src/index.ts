@@ -2,6 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import { connectDB } from "./config/db";
 import todoRoutes from "./routes/todoRoutes";
+import authRoutes from "./routes/authRoutes";
 
 dotenv.config();
 
@@ -21,3 +22,4 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/todos", todoRoutes);
+app.use("/auth", authRoutes);
